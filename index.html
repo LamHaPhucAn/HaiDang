@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phần Mềm Sức Khỏe — Côn Đảo</title>
+<title>Hải Đăng Sức Khỏe — Côn Đảo</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -161,6 +161,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--ocean-light);out
 .msg{max-width:80%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5;}
 .msg.user{align-self:flex-end;background:var(--ocean-deep);color:#fff;border-bottom-right-radius:4px;}
 .msg.bot{align-self:flex-start;background:var(--mist);color:var(--ink);border-bottom-left-radius:4px;}
+.msg.bot b{color:var(--ocean-deep);}
+.msg.bot ul{margin:6px 0;padding-left:18px;}
+.msg.bot li{margin-bottom:4px;}
+.msg.bot p{margin:0 0 8px;}
+.msg.bot p:last-child{margin-bottom:0;}
+.chat-name{font-size:11px;font-weight:700;color:var(--ocean-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.typing-dots{display:inline-flex;gap:3px;align-self:flex-start;background:var(--mist);padding:12px 16px;border-radius:14px;border-bottom-left-radius:4px;}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:#9AAAA6;animation:blink 1.2s infinite;}
+.typing-dots span:nth-child(2){animation-delay:.2s;}
+.typing-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
 .msg.system{align-self:center;background:#FCE7DC;color:var(--coral-dark);border-radius:10px;font-size:13px;text-align:center;}
 .chat-input{display:flex;gap:8px;padding:14px;border-top:1px solid var(--line);}
 .chat-input input{margin:0;}
@@ -385,9 +396,15 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--ocean-light);out
   </div>
 </div>
 
-<div class="foot">Đề tài minh họa — Ứng dụng AI hỗ trợ cảnh báo sức khỏe & kết nối y tế từ xa cho cộng đồng dân cư Côn Đảo</div>
+<div class="foot">Đề tài minh họa — Ứng dụng AI hỗ trợ cảnh báo sức khỏe &amp; kết nối y tế từ xa cho cộng đồng dân cư Côn Đảo<br>
+<a id="github-link" href="https://github.com/TEN-CUA-BAN/hai-dang-suc-khoe" target="_blank" style="color:var(--ocean-mid);font-weight:600;">📦 Xem mã nguồn trên GitHub</a>
+<!-- ⚠️ Thay "TEN-CUA-BAN/hai-dang-suc-khoe" ở trên bằng đường dẫn repo GitHub thật của bạn sau khi tạo xong (xem hướng dẫn bên dưới) --></div>
 
 <script>
+// ⚠️ Sau khi deploy proxy-server (xem README), thay URL bên dưới bằng URL server thật của bạn.
+// VD: 'https://hai-dang-proxy.onrender.com/api/chat'
+const CHAT_API_URL = 'https://haidang-yfag.onrender.com';
+
 // ---------- Tabs ----------
 function switchTab(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -517,10 +534,43 @@ const chatLog = document.getElementById('chat-log');
 let chatHistory = [];
 const EMERGENCY_WORDS = ['cấp cứu','khó thở','đau ngực','bất tỉnh','chảy máu nhiều','ngã nặng','co giật','đột quỵ','tai nạn nặng'];
 
-function appendMsg(text, cls){
+function renderMarkdown(text){
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const lines = escaped.split('\n');
+  let html = '';
+  let inList = false;
+  lines.forEach(line=>{
+    const trimmed = line.trim();
+    if(trimmed.startsWith('- ') || trimmed.startsWith('* ')){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += `<li>${trimmed.slice(2)}</li>`;
+    } else {
+      if(inList){ html += '</ul>'; inList = false; }
+      if(trimmed) html += `<p>${trimmed}</p>`;
+    }
+  });
+  if(inList) html += '</ul>';
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  return html || `<p>${escaped}</p>`;
+}
+
+function appendMsg(text, cls, isMarkdown){
   const div = document.createElement('div');
   div.className = 'msg '+cls;
-  div.textContent = text;
+  if(cls==='bot'){
+    div.innerHTML = `<div class="chat-name">Trợ lý Hải Đăng</div>` + (isMarkdown ? renderMarkdown(text) : `<p>${text}</p>`);
+  } else {
+    div.textContent = text;
+  }
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
+
+function appendTyping(){
+  const div = document.createElement('div');
+  div.className = 'typing-dots';
+  div.innerHTML = '<span></span><span></span><span></span>';
   chatLog.appendChild(div);
   chatLog.scrollTop = chatLog.scrollHeight;
   return div;
@@ -562,33 +612,43 @@ async function sendChat(){
   }
 
   chatHistory.push({role:'user', content:text});
-  const typingEl = appendMsg('Trợ lý đang soạn phản hồi...', 'typing');
+  const typingEl = appendTyping();
 
   try{
-    const systemPrompt = `Bạn là trợ lý AI sức khỏe cho người dân Côn Đảo trong ứng dụng "Hải Đăng Sức Khỏe". Vai trò của bạn:
-- Tư vấn sơ bộ, dễ hiểu, ngắn gọn (dưới 120 từ) bằng tiếng Việt.
-- KHÔNG chẩn đoán bệnh cụ thể, KHÔNG kê đơn thuốc hay liều lượng. Luôn khuyến khích gặp bác sĩ hoặc đến cơ sở y tế khi cần.
-- Nếu câu hỏi có dấu hiệu nghiêm trọng, khuyên người dùng dùng nút khẩn cấp trong ứng dụng thay vì chỉ tư vấn qua chat.
-- Giọng văn thân thiện, ấm áp, phù hợp với cộng đồng dân cư vùng đảo xa, có thể thiếu tiếp cận y tế tức thời.`;
+    const profileContext = profile.name
+      ? `Thông tin hồ sơ người dùng đang trao đổi: Tên ${profile.name||'—'}, tiền sử/dị ứng: ${profile.history||'không có'}.`
+      : `Người dùng chưa điền hồ sơ sức khỏe.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const systemPrompt = `Bạn là "Trợ lý Hải Đăng" — một chuyên viên tư vấn sức khỏe AI thực thụ, làm việc trong ứng dụng "Hải Đăng Sức Khỏe" phục vụ cộng đồng dân cư Côn Đảo (đảo xa đất liền, tiếp cận y tế hạn chế). Hãy trò chuyện như một nhân viên y tế tuyến đầu tận tâm, không phải một cỗ máy trả lời chung chung.
+
+Nguyên tắc trả lời:
+1. Nếu người dùng mô tả triệu chứng nhưng thông tin còn thiếu, hãy hỏi lại 1-2 câu làm rõ trước khi đưa lời khuyên (thời gian khởi phát, mức độ, triệu chứng kèm theo) — giống một buổi tư vấn thật, không trả lời qua loa ngay từ câu đầu nếu chưa đủ dữ kiện.
+2. Khi đã đủ thông tin, đưa ra nhận định sơ bộ có cấu trúc: tình trạng có thể liên quan đến gì (không chẩn đoán khẳng định), việc nên làm tại nhà, và khi nào cần đến cơ sở y tế. Dùng gạch đầu dòng khi liệt kê.
+3. KHÔNG chẩn đoán xác định, KHÔNG kê đơn thuốc hay liều lượng cụ thể.
+4. Nếu phát hiện dấu hiệu nghiêm trọng, khuyên dùng ngay nút khẩn cấp trong ứng dụng thay vì tiếp tục tư vấn.
+5. Văn phong ấm áp, xưng "mình", gọi người dùng là "bạn", ngắn gọn (dưới 150 từ), có thể dùng in đậm (**...**) cho ý quan trọng.
+6. ${profileContext}`;
+
+    const response = await fetch(CHAT_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
         system: systemPrompt,
         messages: chatHistory
       })
     });
     const data = await response.json();
     typingEl.remove();
+    if (!response.ok) {
+      appendMsg(data.error || 'Không thể kết nối trợ lý AI lúc này. Nếu cần hỗ trợ gấp, vui lòng dùng nút "Trường hợp khẩn cấp".', 'bot');
+      return;
+    }
     const reply = (data.content || []).map(b=>b.text||'').join('\n').trim() || 'Xin lỗi, tôi chưa thể phản hồi lúc này. Vui lòng thử lại.';
-    appendMsg(reply, 'bot');
+    appendMsg(reply, 'bot', true);
     chatHistory.push({role:'assistant', content:reply});
   }catch(err){
     typingEl.remove();
-    appendMsg('Không thể kết nối trợ lý AI lúc này. Nếu cần hỗ trợ gấp, vui lòng dùng nút "Trường hợp khẩn cấp".', 'bot');
+    appendMsg('Không thể kết nối trợ lý AI lúc này (kiểm tra lại proxy server đã chạy chưa). Nếu cần hỗ trợ gấp, vui lòng dùng nút "Trường hợp khẩn cấp".', 'bot');
   }
 }
 </script>
