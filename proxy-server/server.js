@@ -9,7 +9,7 @@ app.use(cors()); // Cho phép frontend (GitHub Pages) gọi sang server này
 app.use(express.json());
 
 const API_KEY = process.env.GEMINI_API_KEY;
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.6-flash';
 
 app.post('/api/chat', async (req, res) => {
   if (!API_KEY) {
