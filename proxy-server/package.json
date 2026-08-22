@@ -1,7 +1,7 @@
 {
-  "name": "hai-dang-suc-khoe-proxy",
-  "version": "1.0.0",
-  "description": "Proxy server giấu Anthropic API key cho web app Hải Đăng Sức Khỏe (Côn Đảo)",
+  "name": "hai-dang-suc-khoe-backend",
+  "version": "2.0.0",
+  "description": "Backend cho Hải Đăng Sức Khỏe: Chatbot AI (Gemini) + Đăng nhập/Phân quyền (admin/citizen/medical) + Yêu cầu/Vật tư",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,7 +10,9 @@
     "node": ">=18"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
   }
 }
