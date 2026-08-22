@@ -182,6 +182,49 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--ocean-light);out
 .disclaimer{font-size:12px;color:var(--ink-soft);margin-top:14px;padding:10px 12px;background:var(--mist);border-radius:8px;}
 
 .foot{text-align:center;padding:30px;color:#9AAAA6;font-size:12px;}
+
+/* ---------- Auth area ---------- */
+.auth-area{display:flex;align-items:center;gap:10px;}
+#auth-user-box{display:flex;align-items:center;gap:8px;background:var(--mist);padding:6px 10px;border-radius:999px;}
+#auth-user-name{font-size:13px;font-weight:600;color:var(--ocean-deep);}
+@media(max-width:760px){.auth-area{width:100%;justify-content:flex-end;}}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(10,47,61,0.55);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.modal-card{
+  background:#fff;border-radius:var(--radius);padding:26px;width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.modal-tabs{display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.modal-tab-btn{
+  border:none;background:none;font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;
+  color:#B5C4C1;cursor:pointer;padding:4px 0;
+}
+.modal-tab-btn.active{color:var(--ocean-deep);border-bottom:2px solid var(--coral);}
+.auth-error{
+  background:#FCE7DC;color:var(--coral-dark);font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:14px;
+}
+.tip-box{font-size:12px;color:var(--ocean-mid);background:var(--mist);padding:8px 10px;border-radius:8px;margin:-4px 0 14px;}
+
+/* ---------- Admin / Medical dashboards ---------- */
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{text-align:left;color:var(--ink-soft);font-family:'IBM Plex Mono';font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;border-bottom:2px solid var(--line);}
+.data-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.data-table select{margin:0;padding:6px 8px;font-size:12px;}
+.status-pill{font-size:11px;font-family:'IBM Plex Mono';padding:3px 10px;border-radius:999px;display:inline-block;}
+.status-pill.moi,.status-pill.cho_duyet{background:#FCE7DC;color:var(--coral-dark);}
+.status-pill.dang_xu_ly{background:#FFF3D6;color:#8A6300;}
+.status-pill.da_xu_ly,.status-pill.da_duyet,.status-pill.active{background:#DFF3EC;color:#1F7A5C;}
+.status-pill.pending{background:#FFF3D6;color:#8A6300;}
+.status-pill.blocked,.status-pill.tu_choi{background:#FCE7DC;color:var(--coral-dark);}
+.small-btn{font-size:12px;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-family:'Inter';}
+.small-btn.approve{background:var(--ocean-light);color:#fff;}
+.small-btn.block{background:var(--coral);color:#fff;}
+.request-card{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;}
+.request-card textarea{margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -193,9 +236,56 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--ocean-light);out
   </div>
   <div class="tabs">
     <button class="tab-btn active" data-tab="home">Trang chủ</button>
-    <button class="tab-btn" data-tab="profile">Hồ sơ sức khỏe</button>
-    <button class="tab-btn" data-tab="care">Chăm sóc sức khỏe</button>
-    <button class="tab-btn" data-tab="chat">Trợ lý AI</button>
+    <button class="tab-btn role-citizen" data-tab="profile" style="display:none;">Hồ sơ sức khỏe</button>
+    <button class="tab-btn role-citizen" data-tab="care" style="display:none;">Chăm sóc sức khỏe</button>
+    <button class="tab-btn role-citizen" data-tab="chat" style="display:none;">Trợ lý AI</button>
+    <button class="tab-btn role-medical" data-tab="medical" style="display:none;">Nhân viên y tế</button>
+    <button class="tab-btn role-admin" data-tab="admin" style="display:none;">Quản trị</button>
+  </div>
+  <div class="auth-area">
+    <button class="btn btn-ghost" id="auth-login-btn" style="background:var(--mist);color:var(--ocean-deep);" onclick="openAuthModal('login')">Đăng nhập</button>
+    <div id="auth-user-box" style="display:none;">
+      <span id="auth-user-name" class="mono"></span>
+      <span id="auth-user-role" class="pill"></span>
+      <button class="icon-btn" onclick="logout()" title="Đăng xuất">⏻</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal-backdrop" class="modal-backdrop" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-tabs">
+      <button class="modal-tab-btn active" id="auth-tab-login" onclick="setAuthMode('login')">Đăng nhập</button>
+      <button class="modal-tab-btn" id="auth-tab-register" onclick="setAuthMode('register')">Đăng ký</button>
+      <button class="icon-btn" style="margin-left:auto;font-size:20px;" onclick="closeAuthModal()">✕</button>
+    </div>
+
+    <div id="auth-error" class="auth-error" style="display:none;"></div>
+
+    <form id="login-form" onsubmit="return handleLogin(event)">
+      <label>Email</label>
+      <input id="login-email" type="email" required placeholder="ban@vidu.com">
+      <label>Mật khẩu</label>
+      <input id="login-password" type="password" required placeholder="••••••••">
+      <button class="btn btn-primary" style="width:100%;" type="submit">Đăng nhập</button>
+    </form>
+
+    <form id="register-form" style="display:none;" onsubmit="return handleRegister(event)">
+      <label>Họ và tên</label>
+      <input id="reg-name" required placeholder="Nguyễn Văn A">
+      <label>Email</label>
+      <input id="reg-email" type="email" required placeholder="ban@vidu.com">
+      <label>Mật khẩu</label>
+      <input id="reg-password" type="password" required placeholder="Tối thiểu 6 ký tự">
+      <label>Bạn đăng ký với vai trò</label>
+      <select id="reg-role">
+        <option value="citizen">Người dân</option>
+        <option value="medical">Nhân viên y tế</option>
+      </select>
+      <div id="reg-medical-note" class="tip-box" style="display:none;">Tài khoản nhân viên y tế cần được quản trị viên duyệt trước khi đăng nhập được.</div>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px;" type="submit">Đăng ký</button>
+    </form>
   </div>
 </div>
 
@@ -396,21 +486,201 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--ocean-light);out
   </div>
 </div>
 
+<!-- ADMIN -->
+<div id="panel-admin" class="panel">
+  <div class="wrap" style="padding-top:36px;">
+    <div class="section-head">
+      <h2>Quản trị hệ thống</h2>
+      <p>Duyệt tài khoản, phân quyền, khóa/mở tài khoản người dùng.</p>
+    </div>
+    <div class="card">
+      <table class="data-table" id="admin-users-table">
+        <thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+        <tbody id="admin-users-body"></tbody>
+      </table>
+    </div>
+
+    <div class="section-head"><h2>Đề nghị cung cấp vật tư</h2><p>Do nhân viên y tế gửi lên — duyệt hoặc từ chối.</p></div>
+    <div class="card">
+      <table class="data-table">
+        <thead><tr><th>Nhân viên</th><th>Vật tư/Thuốc</th><th>Số lượng</th><th>Lý do</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+        <tbody id="admin-proposals-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MEDICAL STAFF -->
+<div id="panel-medical" class="panel">
+  <div class="wrap" style="padding-top:36px;">
+    <div class="section-head">
+      <h2>Bảng điều khiển Nhân viên y tế</h2>
+      <p>Tiếp nhận yêu cầu/phản ánh từ người dân và đề nghị cung cấp vật tư.</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <h3 style="color:var(--ocean-deep);">Yêu cầu &amp; phản ánh từ người dân</h3>
+        <div id="medical-requests-list"></div>
+      </div>
+      <div>
+        <div class="card">
+          <h3 style="margin-top:0;">Đề nghị cung cấp vật tư</h3>
+          <label>Tên vật tư/thuốc</label>
+          <input id="supply-item" placeholder="VD: Khẩu trang y tế, Paracetamol...">
+          <div class="grid-2">
+            <input id="supply-qty" placeholder="Số lượng (VD: 200 hộp)">
+          </div>
+          <label>Lý do đề nghị</label>
+          <textarea id="supply-reason" rows="2" placeholder="VD: Sắp hết tồn kho, chuẩn bị mùa dịch..."></textarea>
+          <button class="btn btn-primary" onclick="submitSupplyProposal()">Gửi đề nghị</button>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <h3 style="margin-top:0;">Đề nghị đã gửi</h3>
+          <div id="staff-proposals-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="foot">Đề tài minh họa — Ứng dụng AI hỗ trợ cảnh báo sức khỏe &amp; kết nối y tế từ xa cho cộng đồng dân cư Côn Đảo<br>
 <a id="github-link" href="https://github.com/TEN-CUA-BAN/hai-dang-suc-khoe" target="_blank" style="color:var(--ocean-mid);font-weight:600;">📦 Xem mã nguồn trên GitHub</a>
 <!-- ⚠️ Thay "TEN-CUA-BAN/hai-dang-suc-khoe" ở trên bằng đường dẫn repo GitHub thật của bạn sau khi tạo xong (xem hướng dẫn bên dưới) --></div>
 
 <script>
 // ⚠️ Sau khi deploy proxy-server (xem README), thay URL bên dưới bằng URL server thật của bạn.
-// VD: 'https://hai-dang-proxy.onrender.com/api/chat'
-const CHAT_API_URL = 'https://haidang-yfag.onrender.com/api/chat';
+const API_BASE_URL = 'https://haidang-yfag.onrender.com';
+const CHAT_API_URL = API_BASE_URL + '/api/chat';
+
+// ---------- Auth state ----------
+let authToken = localStorage.getItem('hd_token') || null;
+let currentUser = null;
+
+async function apiFetch(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if(authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  const res = await fetch(API_BASE_URL + path, Object.assign({}, opts, { headers }));
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi, vui lòng thử lại.');
+  return data;
+}
+
+function openAuthModal(mode){
+  document.getElementById('auth-modal-backdrop').style.display='flex';
+  setAuthMode(mode||'login');
+}
+function closeAuthModal(){
+  document.getElementById('auth-modal-backdrop').style.display='none';
+  document.getElementById('auth-error').style.display='none';
+}
+function setAuthMode(mode){
+  const isLogin = mode==='login';
+  document.getElementById('auth-tab-login').classList.toggle('active', isLogin);
+  document.getElementById('auth-tab-register').classList.toggle('active', !isLogin);
+  document.getElementById('login-form').style.display = isLogin ? 'block':'none';
+  document.getElementById('register-form').style.display = isLogin ? 'none':'block';
+  document.getElementById('auth-error').style.display='none';
+}
+document.getElementById('reg-role').addEventListener('change', e=>{
+  document.getElementById('reg-medical-note').style.display = e.target.value==='medical' ? 'block':'none';
+});
+function showAuthError(msg){
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display='block';
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  try{
+    const data = await apiFetch('/api/auth/login', { method:'POST', body: JSON.stringify({email,password}) });
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('hd_token', authToken);
+    closeAuthModal();
+    renderAuthUI();
+    switchTab(currentUser.role==='citizen' ? 'home' : currentUser.role);
+  }catch(err){ showAuthError(err.message); }
+  return false;
+}
+
+async function handleRegister(e){
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+  const role = document.getElementById('reg-role').value;
+  try{
+    const data = await apiFetch('/api/auth/register', { method:'POST', body: JSON.stringify({name,email,password,role}) });
+    if(data.pending){
+      showAuthError('✓ ' + data.message);
+      return false;
+    }
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('hd_token', authToken);
+    closeAuthModal();
+    renderAuthUI();
+  }catch(err){ showAuthError(err.message); }
+  return false;
+}
+
+function logout(){
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem('hd_token');
+  renderAuthUI();
+  switchTab('home');
+}
+
+const ROLE_LABEL = { admin:'Quản trị viên', citizen:'Người dân', medical:'Nhân viên y tế' };
+
+function renderAuthUI(){
+  const loggedIn = !!currentUser;
+  document.getElementById('auth-login-btn').style.display = loggedIn ? 'none':'inline-block';
+  document.getElementById('auth-user-box').style.display = loggedIn ? 'flex':'none';
+  if(loggedIn){
+    document.getElementById('auth-user-name').textContent = currentUser.name;
+    document.getElementById('auth-user-role').textContent = ROLE_LABEL[currentUser.role] || currentUser.role;
+  }
+  ['citizen','medical','admin'].forEach(role=>{
+    document.querySelectorAll('.role-'+role).forEach(btn=>{
+      btn.style.display = (loggedIn && currentUser.role===role) ? 'inline-block' : 'none';
+    });
+  });
+  if(loggedIn && currentUser.role==='admin') loadAdminPanel();
+  if(loggedIn && currentUser.role==='medical') loadMedicalPanel();
+}
+
+async function restoreSession(){
+  if(!authToken) { renderAuthUI(); return; }
+  try{
+    const data = await apiFetch('/api/auth/me');
+    currentUser = data.user;
+  }catch(e){
+    authToken = null; currentUser = null;
+    localStorage.removeItem('hd_token');
+  }
+  renderAuthUI();
+}
+restoreSession();
 
 // ---------- Tabs ----------
+const PROTECTED_TABS = { profile:'citizen', care:'citizen', chat:'citizen', medical:'medical', admin:'admin' };
 function switchTab(name){
+  const requiredRole = PROTECTED_TABS[name];
+  if(requiredRole && (!currentUser || currentUser.role!==requiredRole)){
+    openAuthModal('login');
+    return;
+  }
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
-  document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+  const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  if(btn) btn.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
@@ -519,12 +789,131 @@ function addVital(){
   renderVitals();
 }
 
-function sendConnectRequest(){
+async function sendConnectRequest(){
+  if(!currentUser || currentUser.role!=='citizen'){
+    openAuthModal('login');
+    return;
+  }
   const type=document.getElementById('connect-type').value;
-  const ref = 'CD-'+Math.floor(1000+Math.random()*9000);
+  const note=document.getElementById('connect-note').value;
   const tag=document.getElementById('connect-status');
-  tag.style.display='inline-flex';
-  tag.innerHTML = `✓ Đã gửi "${type}" đến Trung tâm Y tế Côn Đảo — mã yêu cầu ${ref}`;
+  try{
+    await apiFetch('/api/requests', { method:'POST', body: JSON.stringify({type, note}) });
+    tag.style.display='inline-flex';
+    tag.innerHTML = `✓ Đã gửi "${type}" đến nhân viên y tế trực — vui lòng chờ phản hồi`;
+    document.getElementById('connect-note').value='';
+  }catch(err){
+    tag.style.display='inline-flex';
+    tag.innerHTML = `⚠ Gửi thất bại: ${err.message}`;
+  }
+}
+
+// ---------- Admin panel ----------
+async function loadAdminPanel(){
+  try{
+    const { users } = await apiFetch('/api/admin/users');
+    const body = document.getElementById('admin-users-body');
+    body.innerHTML = users.map(u => `
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>
+          <select onchange="updateUser('${u.id}',{role:this.value})" ${u.role==='admin'?'disabled':''}>
+            <option value="citizen" ${u.role==='citizen'?'selected':''}>Người dân</option>
+            <option value="medical" ${u.role==='medical'?'selected':''}>Nhân viên y tế</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Quản trị viên</option>
+          </select>
+        </td>
+        <td><span class="status-pill ${u.status}">${u.status==='active'?'Hoạt động':u.status==='pending'?'Chờ duyệt':'Đã khóa'}</span></td>
+        <td>
+          ${u.role==='admin' ? '—' : u.status==='blocked'
+            ? `<button class="small-btn approve" onclick="updateUser('${u.id}',{status:'active'})">Mở khóa</button>`
+            : `<button class="small-btn approve" onclick="updateUser('${u.id}',{status:'active'})">Duyệt</button>
+               <button class="small-btn block" onclick="updateUser('${u.id}',{status:'blocked'})">Khóa</button>`
+          }
+        </td>
+      </tr>`).join('');
+  }catch(err){ console.error(err); }
+
+  try{
+    const { proposals } = await apiFetch('/api/supply-proposals');
+    const body = document.getElementById('admin-proposals-body');
+    body.innerHTML = proposals.length ? proposals.map(p => `
+      <tr>
+        <td>${p.staffName}</td>
+        <td>${p.item}</td>
+        <td>${p.quantity||'—'}</td>
+        <td>${p.reason||'—'}</td>
+        <td><span class="status-pill ${p.status}">${p.status==='cho_duyet'?'Chờ duyệt':p.status==='da_duyet'?'Đã duyệt':'Từ chối'}</span></td>
+        <td>${p.status==='cho_duyet'
+          ? `<button class="small-btn approve" onclick="updateProposal('${p.id}','da_duyet')">Duyệt</button>
+             <button class="small-btn block" onclick="updateProposal('${p.id}','tu_choi')">Từ chối</button>`
+          : '—'}</td>
+      </tr>`).join('') : '<tr><td colspan="6" style="color:#9AAAA6;">Chưa có đề nghị nào.</td></tr>';
+  }catch(err){ console.error(err); }
+}
+async function updateUser(id, patch){
+  try{ await apiFetch('/api/admin/users/'+id, { method:'PATCH', body: JSON.stringify(patch) }); loadAdminPanel(); }
+  catch(err){ alert(err.message); }
+}
+async function updateProposal(id, status){
+  try{ await apiFetch('/api/supply-proposals/'+id, { method:'PATCH', body: JSON.stringify({status}) }); loadAdminPanel(); }
+  catch(err){ alert(err.message); }
+}
+
+// ---------- Medical staff panel ----------
+const REQUEST_STATUS_LABEL = { moi:'Mới', dang_xu_ly:'Đang xử lý', da_xu_ly:'Đã xử lý' };
+async function loadMedicalPanel(){
+  try{
+    const { requests } = await apiFetch('/api/requests');
+    const el = document.getElementById('medical-requests-list');
+    el.innerHTML = requests.length ? requests.map(r => `
+      <div class="request-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <b style="font-size:14px;">${r.citizenName}</b>
+          <span class="status-pill ${r.status}">${REQUEST_STATUS_LABEL[r.status]}</span>
+        </div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${r.type}${r.note ? ' — '+r.note : ''}</div>
+        <textarea id="resp-${r.id}" rows="2" placeholder="Nhập phản hồi cho người dân...">${r.response||''}</textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="stat-${r.id}">
+            <option value="moi" ${r.status==='moi'?'selected':''}>Mới</option>
+            <option value="dang_xu_ly" ${r.status==='dang_xu_ly'?'selected':''}>Đang xử lý</option>
+            <option value="da_xu_ly" ${r.status==='da_xu_ly'?'selected':''}>Đã xử lý</option>
+          </select>
+          <button class="small-btn approve" onclick="respondRequest('${r.id}')">Gửi phản hồi</button>
+        </div>
+      </div>`).join('') : '<p style="color:#9AAAA6;font-size:13px;">Chưa có yêu cầu nào.</p>';
+  }catch(err){ console.error(err); }
+
+  try{
+    const { proposals } = await apiFetch('/api/supply-proposals');
+    const mine = proposals.filter(p => p.staffId === currentUser.id);
+    const el = document.getElementById('staff-proposals-list');
+    el.innerHTML = mine.length ? mine.map(p => `
+      <div class="list-row"><div><b style="font-size:13px;">${p.item}</b> (${p.quantity||'—'})<br><span style="color:var(--ink-soft);font-size:13px;">${p.reason||''}</span></div>
+      <span class="status-pill ${p.status}">${p.status==='cho_duyet'?'Chờ duyệt':p.status==='da_duyet'?'Đã duyệt':'Từ chối'}</span></div>`).join('')
+      : '<p style="color:#9AAAA6;font-size:13px;">Bạn chưa gửi đề nghị nào.</p>';
+  }catch(err){ console.error(err); }
+}
+async function respondRequest(id){
+  const response = document.getElementById('resp-'+id).value;
+  const status = document.getElementById('stat-'+id).value;
+  try{ await apiFetch('/api/requests/'+id, { method:'PATCH', body: JSON.stringify({response, status}) }); loadMedicalPanel(); }
+  catch(err){ alert(err.message); }
+}
+async function submitSupplyProposal(){
+  const item = document.getElementById('supply-item').value;
+  const quantity = document.getElementById('supply-qty').value;
+  const reason = document.getElementById('supply-reason').value;
+  if(!item) return;
+  try{
+    await apiFetch('/api/supply-proposals', { method:'POST', body: JSON.stringify({item, quantity, reason}) });
+    document.getElementById('supply-item').value='';
+    document.getElementById('supply-qty').value='';
+    document.getElementById('supply-reason').value='';
+    loadMedicalPanel();
+  }catch(err){ alert(err.message); }
 }
 
 renderExams();renderMeds();renderReminders();renderVitals();
@@ -631,7 +1020,7 @@ Nguyên tắc trả lời:
 
     const response = await fetch(CHAT_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + authToken },
       body: JSON.stringify({
         system: systemPrompt,
         messages: chatHistory
